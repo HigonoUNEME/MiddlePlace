@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>駅中間地点検索ツール (地理距離)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+        }
+        input[type="text"] {
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 80%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: left;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>駅中間地点検索ツール (地理距離)</h1>
+    
+    <p>出発駅と到着駅を入力し、地理的な中間点に最も近い駅を検索します。</p>
+
+    <input type="text" id="startStation" placeholder="出発駅名を入力（例：東京）">
+    <input type="text" id="endStation" placeholder="到着駅名を入力（例：大阪）">
+    
+    <button onclick="findIntermediateStation()">中間駅を検索</button>
+
+    <div id="result">
+        <p>結果が表示されます。</p>
+    </div>
+</div>
+
+<script>
+    // 🌍 ダミーの駅データ (station.jsonに相当する内容)
+    // 実際のツールでは、より大規模で正確なデータが必要です。
+    const stationData = [
+        { name: "東京", lat: 35.681236, lon: 139.767125 },
+        { name: "新宿", lat: 35.690921, lon: 139.700163 },
+        { name: "名古屋", lat: 35.170763, lon: 136.881774 },
+        { name: "京都", lat: 34.985849, lon: 135.756783 },
+        { name: "大阪", lat: 34.701925, lon: 135.495000 },
+        { name: "静岡", lat: 34.976865, lon: 138.383181 },
+        { name: "浜松", lat: 34.704257, lon: 137.731761 },
+        { name: "岐阜羽島", lat: 35.321667, lon: 136.685833 },
+        { name: "新横浜", lat: 35.510833, lon: 139.617222 },
+        { name: "小田原", lat: 35.2575, lon: 139.155833 }
+    ];
+
+    // ----------------------------------------------------
+    // ⚙️ 計算ロジック
+    // ----------------------------------------------------
+    
+    // 地理的な距離を計算する関数 (ハバーサインの公式を使用)
+    // 出力単位はキロメートル (km)
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // 地球の半径 (km)
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a = 
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function findIntermediateStation() {
+        const startName = document.getElementById('startStation').value.trim();
+        const endName = document.getElementById('endStation').value.trim();
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '';
+
+        if (!startName || !endName) {
+            resultDiv.innerHTML = '<p class="error">出発駅と到着駅の両方を入力してください。</p>';
+            return;
+        }
+
+        // 1. 緯度・経度の検索
+        const startStation = stationData.find(s => s.name === startName);
+        const endStation = stationData.find(s => s.name === endName);
+
+        if (!startStation || !endStation) {
+            const missing = !startStation ? startName : endName;
+            resultDiv.innerHTML = `<p class="error">駅「${missing}」のデータが見つかりません。（データは大文字・小文字を区別します）</p>`;
